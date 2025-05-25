@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prompt Inspector and Optimizer</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <header>
+        <h1>Prompt Inspector and Optimizer</h1>
+        <p>Analyze and improve your prompts for better AI responses</p>
+    </header>
+
+    <main>
+        <section id="input-section">
+            <h2>Enter Your Prompt</h2>
+            <form id="prompt-form">
+                <div class="form-group">
+                    <label for="prompt-input">Prompt Text:</label>
+                    <textarea id="prompt-input" rows="8" placeholder="Enter your prompt here..."></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="model-select">Target Model:</label>
+                    <select id="model-select" required>
+                        <option value="" disabled>-- Select a model --</option>
+                        <option value="openrouter:meta-llama/llama-3.3-8b-instruct:free" selected>OpenRouter: Llama 3.3 8B (Free)</option>
+                        <option value="openrouter:mistralai/mistral-7b-instruct:free">OpenRouter: Mistral 7B (Free)</option>
+                        <option value="openrouter:google/gemma-7b-it:free">OpenRouter: Gemma 7B (Free)</option>
+                        <option value="gpt-4">OpenAI: GPT-4</option>
+                        <option value="gpt-3.5-turbo">OpenAI: GPT-3.5 Turbo</option>
+                        <option value="claude">Anthropic: Claude</option>
+                    </select>
+                    <div class="validation-message" id="model-validation-message"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="detailed-analysis"> 
+                        Detailed Analysis (uses LLM API)
+                    </label>
+                </div>
+                
+                <div id="api-key-section" class="form-group hidden">
+                    <label for="api-key-input">API Key:</label>
+                    <div class="api-key-container">
+                        <input type="password" id="api-key-input" placeholder="Enter your API key">
+                        <button type="button" id="toggle-api-key" class="icon-button">👁️</button>
+                    </div>
+                    <p class="api-key-note">Your API key is used only for this request and is not stored on our servers.</p>
+                </div>
+                
+                <button type="submit" id="analyze-button">Analyze Prompt</button>
+            </form>
+        </section>
+
+        <section id="results-section" class="hidden">
+            <div class="results-header">
+                <h2>Analysis Results</h2>
+                <button id="back-button">← Back to Editor</button>
+            </div>
+            
+            <div class="results-container">
+                <div class="score-overview">
+                    <div class="overall-score">
+                        <h3>Overall Score</h3>
+                        <div class="score-circle">
+                            <span id="overall-score-value">0</span>/5
+                        </div>
+                    </div>
+                    
+                    <div class="score-chart">
+                        <h3>Dimension Scores</h3>
+                        <canvas id="radar-chart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="strengths-weaknesses">
+                    <div class="strengths">
+                        <h3>Strengths</h3>
+                        <ul id="strengths-list"></ul>
+                    </div>
+                    
+                    <div class="weaknesses">
+                        <h3>Areas for Improvement</h3>
+                        <ul id="weaknesses-list"></ul>
+                    </div>
+                </div>
+                
+                <div class="comparison">
+                    <h3>Before & After</h3>
+                    <div class="comparison-container">
+                        <div class="original-prompt">
+                            <h4>Original Prompt</h4>
+                            <pre id="original-prompt-display"></pre>
+                        </div>
+                        
+                        <div class="optimized-prompt">
+                            <h4>Optimized Prompt</h4>
+                            <pre id="optimized-prompt-display"></pre>
+                            <button id="copy-button">Copy to Clipboard</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="suggestions">
+                    <h3>Optimization Suggestions</h3>
+                    <div id="suggestions-container"></div>
+                </div>
+            </div>
+        </section>
+        
+        <section id="loading-section" class="hidden">
+            <div class="loading-container">
+                <div class="loading-spinner"></div>
+                <p>Analyzing your prompt...</p>
+            </div>
+        </section>
+        
+        <section id="error-section" class="hidden">
+            <div class="error-container">
+                <h3>Error</h3>
+                <p id="error-message"></p>
+                <button id="error-back-button">Try Again</button>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="educational-resources">
+            <h3>Learn More About Prompt Engineering</h3>
+            <ul>
+                <li><a href="#" class="tooltip" data-tooltip="Specific instructions help the AI understand exactly what you're looking for">Clarity & Specificity</a></li>
+                <li><a href="#" class="tooltip" data-tooltip="Context helps the AI provide more relevant and accurate responses">Context & Background</a></li>
+                <li><a href="#" class="tooltip" data-tooltip="Examples help the AI understand your expectations for style, format, and content">Using Examples</a></li>
+                <li><a href="#" class="tooltip" data-tooltip="Role prompting helps frame the AI's perspective and knowledge base appropriately">Role Assignment</a></li>
+                <li><a href="#" class="tooltip" data-tooltip="Guidance for reasoning leads to more thorough and logical responses">Reasoning Guidance</a></li>
+            </ul>
+        </div>
+        <p>&copy; 2025 Prompt Inspector and Optimizer</p>
+    </footer>
+
+    <script src="/static/js/main.js"></script>
+</body>
+</html>
