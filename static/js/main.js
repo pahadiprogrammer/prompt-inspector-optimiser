@@ -175,7 +175,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Display analysis results
     function displayResults(results, originalPrompt) {
-        // Display overall score
+        // Display overall score (already scaled to 0-5 in backend)
         const overallScore = Math.round(results.overall_score * 10) / 10;
         overallScoreValue.textContent = overallScore.toFixed(1);
         
@@ -271,7 +271,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 .join(' ');
             
             labels.push(label);
-            data.push(score);
+            // Scale scores from 0-1 to 0-5 for consistency with overall score
+            data.push(score * 5);
         }
         
         // Create chart
@@ -297,7 +298,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             display: true
                         },
                         suggestedMin: 0,
-                        suggestedMax: 1
+                        suggestedMax: 5
                     }
                 }
             }

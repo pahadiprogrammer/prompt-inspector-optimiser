@@ -78,9 +78,11 @@ async def analyze_prompt(
         )
         logger.info(f"Generated {len(suggestions)} optimization suggestions")
         
-        # Calculate overall score
-        overall_score = sum(rule_analysis["dimension_scores"].values()) / len(rule_analysis["dimension_scores"])
-        logger.info(f"Overall score: {overall_score:.2f}")
+        # Calculate overall score (0-1 scale)
+        raw_overall_score = sum(rule_analysis["dimension_scores"].values()) / len(rule_analysis["dimension_scores"])
+        # Scale to 0-5 range for display
+        overall_score = raw_overall_score * 5
+        logger.info(f"Overall score: {overall_score:.2f}/5 (raw: {raw_overall_score:.2f})")
         
         # Create optimized prompt (placeholder - will be implemented in optimizer)
         optimized_prompt = prompt_request.prompt_text

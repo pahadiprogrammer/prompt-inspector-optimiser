@@ -372,6 +372,25 @@ pre {
     transition: opacity 0.5s ease;
 }
 
+/* Optimization message styles */
+.optimization-message {
+    background-color: var(--light-gray);
+    border-radius: var(--border-radius);
+    padding: 2rem;
+    margin-bottom: 2rem;
+    text-align: center;
+    border-left: 4px solid var(--primary-color);
+}
+
+.optimization-message h3 {
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+}
+
+.optimization-message .loading-spinner {
+    margin: 1rem auto;
+}
+
 /* Footer styles */
 footer {
     background-color: var(--light-gray);

@@ -22,6 +22,8 @@ You are a prompt engineering expert tasked with analyzing and improving prompts 
 Evaluate the prompt based on clarity, specificity, context, structure, examples, and other key dimensions.
 Provide specific, actionable feedback on how to improve the prompt.
 Your analysis should be detailed, constructive, and focused on helping the user create more effective prompts.
+
+IMPORTANT: Do not include your own model name or identifier in your response. Do not modify or repeat the target model information provided in the prompt. Analyze the prompt for the specified target model without adding your own model name to the response.
 """
 
 # Default OpenRouter model
@@ -68,6 +70,17 @@ async def analyze_prompt_with_llm(
         logger.warning("No API key available, falling back to free model")
         return await analyze_with_free_model(prompt_text, target_model)
     
+    # Clean up target model name to avoid model confusion
+    # Remove any "openrouter:" prefix for the analysis prompt
+    display_target_model = target_model
+    if ":" in target_model:
+        display_target_model = target_model.split(":", 1)[1]
+    # For free models, simplify further to avoid model confusion
+    if "/" in display_target_model and "free" in display_target_model:
+        display_target_model = display_target_model.split("/")[0]
+    
+    logger.info(f"Using display target model: {display_target_model}")
+    
     # Prepare the analysis prompt
     analysis_prompt = """
     Please analyze the following prompt and provide detailed feedback on how to improve it.
@@ -78,6 +91,8 @@ async def analyze_prompt_with_llm(
     ```
     
     Target AI model: {1}
+    
+    IMPORTANT: Do not modify or repeat the target model information above. Do not include your own model name in your analysis.
     
     Evaluate the prompt on the following dimensions:
     1. Clarity & Specificity
@@ -118,7 +133,7 @@ async def analyze_prompt_with_llm(
         ],
         "improved_prompt": "A revised version of the prompt"
     }}
-    """.format(prompt_text, target_model)
+    """.format(prompt_text, display_target_model)
     
     try:
         # Determine which API to use based on target_model
@@ -280,6 +295,8 @@ async def process_llm_response(response) -> Dict[str, Any]:
                     logger.info("Extracted JSON object directly from content")
             
             try:
+                # First, strip any leading/trailing whitespace
+                json_str = json_str.strip()
                 analysis = json.loads(json_str)
                 logger.info("Successfully parsed JSON from LLM response")
             except json.JSONDecodeError:
@@ -290,8 +307,47 @@ async def process_llm_response(response) -> Dict[str, Any]:
                 end_idx = json_str.rfind("}") + 1
                 if start_idx != -1 and end_idx != 0:
                     json_str = json_str[start_idx:end_idx].strip()
-                    analysis = json.loads(json_str)
-                    logger.info("Successfully parsed JSON after cleanup")
+                    try:
+                        analysis = json.loads(json_str)
+                        logger.info("Successfully parsed JSON after cleanup")
+                    except json.JSONDecodeError as e:
+                        # Try more aggressive cleanup - fix common JSON formatting issues
+                        logger.warning(f"JSON parsing still failed: {str(e)}, attempting more aggressive cleanup")
+                        # Replace single quotes with double quotes for keys and string values
+                        import re
+                        # Fix keys without quotes or with single quotes
+                        json_str = re.sub(r'([{,])\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*:', r'\1"\2":', json_str)
+                        # Fix values with single quotes
+                        json_str = re.sub(r':\s*\'([^\']*?)\'([,}])', r':"\1"\2', json_str)
+                        # Remove trailing commas
+                        json_str = re.sub(r',\s*}', '}', json_str)
+                        json_str = re.sub(r',\s*]', ']', json_str)
+                        
+                        try:
+                            analysis = json.loads(json_str)
+                            logger.info("Successfully parsed JSON after aggressive cleanup")
+                        except json.JSONDecodeError:
+                            # If all else fails, try a more manual approach
+                            logger.error("All JSON parsing attempts failed, falling back to manual extraction")
+                            # Create a basic structure with what we can extract
+                            analysis = {
+                                "error": "Failed to parse complete JSON response",
+                                "dimension_scores": {},
+                                "strengths": [],
+                                "weaknesses": [],
+                                "suggestions": []
+                            }
+                            
+                            # Try to extract dimension scores
+                            score_match = re.search(r'"dimension_scores"\s*:\s*{([^}]+)}', json_str)
+                            if score_match:
+                                score_text = score_match.group(1)
+                                score_pairs = re.findall(r'"([^"]+)"\s*:\s*(\d+)', score_text)
+                                for key, value in score_pairs:
+                                    try:
+                                        analysis["dimension_scores"][key] = float(value) / 5.0  # Convert to 0-1 scale
+                                    except ValueError:
+                                        pass
             
             # Log some key parts of the analysis
             if "dimension_scores" in analysis:
@@ -301,7 +357,15 @@ async def process_llm_response(response) -> Dict[str, Any]:
             if "weaknesses" in analysis and analysis["weaknesses"]:
                 logger.info(f"First weakness: {analysis['weaknesses'][0]}")
             if "suggestions" in analysis and analysis["suggestions"]:
-                logger.info(f"First suggestion title: {analysis['suggestions'][0]['title']}")
+                logger.info(f"First suggestion title: {analysis['suggestions'][0].get('title', 'No title')}")
+            
+            # Convert dimension scores from 1-5 scale to 0-1 scale if needed
+            if "dimension_scores" in analysis:
+                for dim, score in analysis["dimension_scores"].items():
+                    # Check if score is on 1-5 scale and convert to 0-1
+                    if isinstance(score, (int, float)) and score > 1:
+                        analysis["dimension_scores"][dim] = score / 5.0
+                        logger.info(f"Converted {dim} score from {score} to {analysis['dimension_scores'][dim]}")
             
             return analysis
         except (KeyError, json.JSONDecodeError) as e:
